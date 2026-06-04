@@ -33,7 +33,7 @@ end
 function M.make(laravel_file, user_arguments)
     local file_name, flags = arguments_parser.parse(user_arguments)
 
-    if not file_name then
+    if not file_name or file_name == "" then
         print("[Command Error] File name is required")
         return
     end
