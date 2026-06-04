@@ -10,6 +10,26 @@ function M.setup(opts)
     options = vim.tbl_deep_extend("force", options, opts)
 end
 
+function M.artisan(command_name, user_arguments)
+    local args = {}
+    if user_arguments then
+        for arg in user_arguments:gmatch("%S+") do
+            table.insert(args, arg)
+        end
+    end
+
+    local cmd = {options.php, options.artisan, command_name}
+    for _, arg in ipairs(args) do
+        table.insert(cmd, arg)
+    end
+
+    local lines, ok = command.execute(cmd)
+
+    for _, line in ipairs(lines) do
+        print("[Artisan] ", line)
+    end
+end
+
 function M.make(laravel_file, user_arguments)
     local file_name, flags = arguments_parser.parse(user_arguments)
 
