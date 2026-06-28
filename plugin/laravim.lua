@@ -19,8 +19,8 @@ local commands = {
     {name = "Optimize", cmd = "optimize", desc = "Cache framework bootstrap, configuration, and metadata to increase performance"},
     {name = "Pail", cmd = "pail", desc = "Tails the application logs"},
     {name = "Serve", cmd = "serve", desc = "Serve the application on the PHP development server"},
-    {name = "Test", cmd = "test", desc = "Run the application tests"},
-    {name = "Tinker", cmd = "tinker", desc = "Interact with your application"},
+    {name = "Test", cmd = "test", desc = "Run the application tests", terminal = true},
+    {name = "Tinker", cmd = "tinker", desc = "Interact with your application", terminal = true},
     {name = "Up", cmd = "up", desc = "Bring the application out of maintenance mode"},
 
     {name = "AuthClearResets", cmd = "auth:clear-resets", desc = "Flush expired password reset tokens"},
@@ -151,9 +151,15 @@ local commands = {
     {name = "ViewClear", cmd = "view:clear", desc = "Clear all compiled view files"},
 }
 
+local function run_in_terminal(cmd)
+    vim.cmd("rightbelow vsplit | terminal " .. laravim.get_php() .. " " .. laravim.get_artisan() .. " " .. cmd)
+end
+
 for _, entry in ipairs(commands) do
     vim.api.nvim_create_user_command("Artisan" .. entry.name, function(opts)
-        if entry.make then
+        if entry.terminal then
+            run_in_terminal(entry.cmd .. " " .. opts.args)
+        elseif entry.make then
             laravim.make(entry.file_type, opts.args)
         else
             laravim.artisan(entry.cmd, opts.args)
@@ -161,11 +167,14 @@ for _, entry in ipairs(commands) do
     end, {nargs = "*", desc = entry.desc})
 end
 
-vim.keymap.set("n", "<leader>amm", ":ArtisanMakeModel")
-vim.keymap.set("n", "<leader>amc", ":ArtisanMakeController")
 vim.keymap.set("n", "<leader>ar", ":Artisan<CR>")
 
 local function run_command(entry)
+    if entry.terminal then
+        local args = vim.fn.input("Arguments: ")
+        run_in_terminal(entry.cmd .. " " .. args)
+        return
+    end
     local args = vim.fn.input("Arguments: ")
     if entry.make then
         laravim.make(entry.file_type, args)
@@ -190,8 +199,8 @@ vim.api.nvim_create_user_command("Artisan", function()
                 entry_maker = function(entry)
                     return {
                         value = entry,
-                        display = "Artisan" .. entry.name .. ": " .. entry.desc,
-                        ordinal = "Artisan" .. entry.name .. " " .. entry.desc,
+                        display = entry.cmd,
+                        ordinal = entry.cmd,
                     }
                 end,
             }),
@@ -199,10 +208,10 @@ vim.api.nvim_create_user_command("Artisan", function()
             attach_mappings = function(prompt_bufnr)
                 actions.select_default:replace(function()
                     local selection = action_state.get_selected_entry()
+                    actions.close(prompt_bufnr)
                     if selection then
                         run_command(selection.value)
                     end
-                    actions.close(prompt_bufnr)
                 end)
                 return true
             end,
@@ -212,9 +221,9 @@ vim.api.nvim_create_user_command("Artisan", function()
             title = "Artisan Commands",
             items = vim.iter(commands):enumerate():map(function(i, entry)
                 return {
-                    filename = "Artisan" .. entry.name,
+                    filename = entry.cmd,
                     lnum = i,
-                    text = entry.desc,
+                    text = "",
                 }
             end):totable(),
         })

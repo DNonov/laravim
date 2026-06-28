@@ -5,6 +5,18 @@ local arguments_parser = require("laravim.utils.arguments_parser")
 
 local M = {}
 
+local function show_output(lines)
+    if #lines == 0 then return end
+    vim.cmd("botright 10new")
+    local bufnr = vim.api.nvim_get_current_buf()
+    vim.bo[bufnr].buftype = "nofile"
+    vim.bo[bufnr].bufhidden = "wipe"
+    vim.bo[bufnr].modifiable = true
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+    vim.bo[bufnr].modifiable = false
+    vim.api.nvim_buf_set_name(bufnr, "Artisan Output")
+end
+
 function M.setup(opts)
     opts = opts or {}
     options = vim.tbl_deep_extend("force", options, opts)
@@ -24,10 +36,15 @@ function M.artisan(command_name, user_arguments)
     end
 
     local lines, ok = command.execute(cmd)
+    show_output(lines)
+end
 
-    for _, line in ipairs(lines) do
-        print("[Artisan] ", line)
-    end
+function M.get_php()
+    return options.php
+end
+
+function M.get_artisan()
+    return options.artisan
 end
 
 function M.make(laravel_file, user_arguments)
@@ -53,9 +70,7 @@ function M.make(laravel_file, user_arguments)
         flags
     })
 
-    for _, line in ipairs(lines) do
-        print("[Artisan] ", line)
-    end
+    show_output(lines)
 
     if ok then
         vim.cmd("edit " .. path_to_file_dir .. file_name .. ".php")
